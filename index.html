@@ -388,7 +388,7 @@ a.btn.primary { color: var(--on-accent); }
   function renderWatch(scoped) {
     var box = $("watch-list"); box.textContent = "";
     var open = scoped.filter(function (it) { return isOpen(it) && str(it.next); }).slice(0, 8);
-    if (!open.length) { box.appendChild(h("li", { class: "proj", text: "No open items with a next milestone in this scope." })); return; }
+    if (!open.length) { box.appendChild(h("li", { class: "proj", text: "No open items with a next milestone match these filters." })); return; }
     open.forEach(function (it) {
       box.appendChild(h("li", null,
         h("span", { class: "next", text: it.next }),
@@ -398,8 +398,8 @@ a.btn.primary { color: var(--on-accent); }
 
   function render() {
     $("f-scope").value = state.scope;
-    var scoped = inScope();
-    renderStats(scoped); renderChart(scoped); renderLedger(filtered()); renderWatch(scoped);
+    var shown = filtered();
+    renderStats(shown); renderChart(shown); renderLedger(shown); renderWatch(shown);
     $("foot-count").textContent = state.loaded ? state.items.length + " developments logged" : "";
   }
 
@@ -426,10 +426,10 @@ a.btn.primary { color: var(--on-accent); }
     try { localStorage.setItem("owt-scope", state.scope); } catch (err) {}
     render();
   });
-  $("q").addEventListener("input", function (e) { state.q = e.target.value; renderLedger(filtered()); });
-  $("f-type").addEventListener("change", function (e) { state.type = e.target.value; renderLedger(filtered()); });
-  $("f-status").addEventListener("change", function (e) { state.status = e.target.value; renderLedger(filtered()); });
-  $("f-where").addEventListener("change", function (e) { state.where = e.target.value; renderLedger(filtered()); });
+  $("q").addEventListener("input", function (e) { state.q = e.target.value; render(); });
+  $("f-type").addEventListener("change", function (e) { state.type = e.target.value; render(); });
+  $("f-status").addEventListener("change", function (e) { state.status = e.target.value; render(); });
+  $("f-where").addEventListener("change", function (e) { state.where = e.target.value; render(); });
   $("csv").addEventListener("click", downloadCsv);
   render();
 
