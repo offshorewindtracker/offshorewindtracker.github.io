@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offshore Wind Tracker</title>
+<meta name="description" content="Federal actions, litigation and lease buybacks affecting U.S. offshore wind, with the DoD Siting Clearinghouse thread separated out.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a docket. Scope switch and activity strip on top, a dated ledger on the left, the watch list on the right. */
+:root {
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --ink: #14212b;
+  --muted: #566875;
+  --line: #d3dce2;
+  --accent: #0b5e7a;
+  --accent-soft: #dcecf2;
+  --flag: #8a5200;
+  --flag-soft: #fbefd6;
+  --on-accent: #ffffff;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f171d;
+    --surface: #17232b;
+    --ink: #e6edf1;
+    --muted: #94a6b2;
+    --line: #2b3c47;
+    --accent: #62bbd9;
+    --accent-soft: #15323e;
+    --flag: #f0b95a;
+    --flag-soft: #3a2c10;
+    --on-accent: #0f171d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f171d;
+  --surface: #17232b;
+  --ink: #e6edf1;
+  --muted: #94a6b2;
+  --line: #2b3c47;
+  --accent: #62bbd9;
+  --accent-soft: #15323e;
+  --flag: #f0b95a;
+  --flag-soft: #3a2c10;
+  --on-accent: #0f171d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; display: flex; flex-direction: column; gap: 24px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
+h2 { font-size: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+p { margin: 0; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.masthead { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; }
+.masthead .lede { color: var(--muted); max-width: 60ch; margin-top: 6px; }
+
+.scope { display: inline-flex; border: 1px solid var(--accent); border-radius: 999px; padding: 3px; background: var(--surface); }
+.scope button {
+  border: 0; background: transparent; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: 0.02em; color: var(--accent);
+}
+.scope button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; }
+.statline { font-family: var(--font-mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.statline b { color: var(--ink); font-weight: 500; }
+
+.activity { display: flex; flex-direction: column; gap: 12px; }
+.activity-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.chart { position: relative; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 96px; border-bottom: 1px solid var(--line); }
+.bar-slot { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: default; position: relative; }
+.bar-slot .count { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.bar { width: 100%; max-width: 30px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 0; }
+.bar-slot:hover .bar, .bar-slot:focus-visible .bar { opacity: 0.75; }
+.bar-labels { display: flex; gap: 2px; margin-top: 6px; }
+.bar-labels span { flex: 1 1 0; min-width: 0; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.tip {
+  position: absolute; bottom: calc(100% + 6px); left: 0; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); font-size: 12px; padding: 5px 9px; border-radius: 4px;
+  white-space: nowrap; pointer-events: none; z-index: 2;
+}
+.tip[hidden] { display: none; }
+
+.review { border-color: var(--flag); background: var(--flag-soft); display: flex; flex-direction: column; gap: 12px; }
+.review h2 { color: var(--flag); }
+.review-item { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.review-item .body { flex: 1 1 320px; min-width: 0; }
+.review-actions { display: flex; gap: 8px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.controls input[type="search"], .controls select {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; min-height: 38px;
+}
+.controls input[type="search"] { flex: 1 1 220px; min-width: 0; }
+.spacer { flex: 1 1 0; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 4px; padding: 8px 14px; min-height: 38px; cursor: pointer; font-weight: 500;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.small { padding: 3px 9px; min-height: 0; font-size: 12px; }
+.btn.danger { color: var(--flag); border-color: var(--flag); }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+
+.columns { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .columns { grid-template-columns: minmax(0, 1fr); } .watch { order: -1; } }
+
+.ledger { display: flex; flex-direction: column; gap: 22px; }
+.month { display: flex; flex-direction: column; }
+.month-head { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding-bottom: 6px; border-bottom: 2px solid var(--ink); display: flex; justify-content: space-between; }
+.entry { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.entry.ch { box-shadow: inset 3px 0 0 var(--accent); padding-left: 12px; }
+.entry .date { font-family: var(--font-mono); font-size: 13px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.entry .main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.entry .summary { font-weight: 500; max-width: 68ch; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag { font-size: 12px; border: 1px solid var(--line); border-radius: 3px; padding: 1px 7px; color: var(--muted); white-space: nowrap; }
+.tag.ch { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tag.open { color: var(--ink); border-color: var(--ink); }
+.tag.open::before { content: "\25CF\00a0"; font-size: 9px; vertical-align: 1px; }
+.meta { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.meta b { color: var(--ink); font-weight: 500; }
+.entry-foot { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; }
+.entry-foot .tier { color: var(--muted); }
+
+.watch { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 16px; }
+@media (max-width: 860px) { .watch { position: static; } }
+.watch ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.watch li { padding: 10px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.watch li:first-child { border-top: 0; padding-top: 0; }
+.watch .next { font-weight: 500; overflow-wrap: anywhere; }
+.watch .proj { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+.empty, .notice { color: var(--muted); padding: 18px 0; }
+.notice { font-size: 13px; padding: 0; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 4px; font-size: 14px; max-width: calc(100% - 32px); z-index: 20; }
+.toast[hidden] { display: none; }
+
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 0; width: min(640px, calc(100% - 24px)); max-height: calc(100% - 24px); }
+dialog::backdrop { background: rgba(10, 18, 24, 0.55); }
+dialog form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.field.wide { grid-column: 1 / -1; }
+.field input, .field select, .field textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; color: var(--ink); font-size: 15px; width: 100%; }
+.field textarea { min-height: 84px; resize: vertical; }
+.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; }
+.check input { width: auto; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.ref { display: flex; flex-direction: column; gap: 14px; }
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 28px; }
+.ref-grid h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.ref-grid p { font-size: 14px; color: var(--muted); max-width: 60ch; }
+.ref-grid p b { color: var(--ink); font-weight: 500; }
+.foot { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; color: var(--ink); }
+a.btn.primary { color: var(--on-accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>Offshore Wind Tracker</h1>
+      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind development. Switch to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
+    </div>
+    <div class="scope" role="radiogroup" aria-label="Scope">
+      <button type="button" role="radio" id="scope-all" aria-checked="true" data-scope="all">All</button>
+      <button type="button" role="radio" id="scope-ch" aria-checked="false" data-scope="ch">Clearinghouse</button>
+    </div>
+  </header>
+
+  <section class="panel activity" aria-labelledby="activity-title">
+    <div class="activity-head">
+      <h2 id="activity-title">Developments per month</h2>
+      <div class="statline" id="statline"></div>
+    </div>
+    <div class="chart">
+      <div class="bars" id="bars" role="img" aria-label="Developments logged per month"></div>
+      <div class="bar-labels" id="bar-labels" aria-hidden="true"></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="notice" id="load-note" hidden></p>
+  </section>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search summaries, projects, developers" aria-label="Search">
+    <select id="f-type" aria-label="Type"><option value="">All types</option></select>
+    <select id="f-status" aria-label="Status"><option value="">Any status</option></select>
+    <select id="f-where" aria-label="Onshore or offshore"><option value="">Onshore and offshore</option><option value="Offshore">Offshore</option><option value="Onshore">Onshore</option></select>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="csv">Download CSV</button>
+    <a class="btn primary" href="https://github.com/themetascientist/offshore-wind-tracker/pulls">Review proposed items</a>
+  </div>
+
+  <div class="columns">
+    <main class="ledger" id="ledger" aria-live="polite"></main>
+    <aside class="panel watch" aria-labelledby="watch-title">
+      <h2 id="watch-title">What to watch</h2>
+      <ol id="watch-list"></ol>
+    </aside>
+  </div>
+
+  <section class="panel ref" aria-labelledby="ref-title">
+    <h2 id="ref-title">How Clearinghouse review works</h2>
+    <div class="ref-grid">
+      <div><h3>What it covers</h3><p>The Military Aviation and Installation Assurance Siting Clearinghouse coordinates DoD review of energy project applications filed with the FAA under 49 U.S.C. 44718. <b>10 U.S.C. 183a(b)</b></p></div>
+      <div><h3>The 75-day clock</h3><p>DoD must complete a preliminary review within 75 days of receiving a proper application from Transportation. DoD counts calendar days, excluding federal holidays. <b>183a(c)(1); DoDI 4180.02 glossary</b></p></div>
+      <div><h3>Notice of presumed risk</h3><p>If the review finds an adverse impact, the applicant and the state governor are notified, and the governor gets at least 30 days to comment. The notice is preliminary, not a formal objection. <b>183a(c)(2)-(3)</b></p></div>
+      <div><h3>Mitigation</h3><p>A Military Department must concur and request a mitigation response team within 70 days of the FAA filing. Agreements are signed by the assistant secretary for energy, installations and environment, or by the under secretary for acquisition and sustainment when the developer's contribution exceeds $1.5 million. <b>DoDI 4180.02 paras. 2.1, 2.2, 3.2</b></p></div>
+      <div><h3>Objecting to a project</h3><p>The Secretary may object only after fully considering mitigation and finding an unacceptable risk to national security. That finding can be delegated no lower than a deputy under secretary, and Congress must get a report within 30 days. <b>183a(e)</b></p></div>
+      <div><h3>Offshore projects</h3><p>Projects on the Outer Continental Shelf reach DoD through Interior and BOEM, under a 1983 DoD-Interior agreement and the October 2024 BOEM-DoD memorandum. The 75-day clock attaches to FAA-filed applications. <b>DoDI 4180.02 paras. 1.1, 3.4</b></p></div>
+    </div>
+    <p class="notice">Sources: <a href="https://www.law.cornell.edu/uscode/text/10/183a">10 U.S.C. 183a</a> and <a href="https://www.esd.whs.mil/Portals/54/Documents/DD/issuances/dodi/418002p.pdf">DoD Instruction 4180.02</a> (June 15, 2023). A summary for orientation, not legal advice.</p>
+  </section>
+
+  <footer class="foot">
+    <span id="foot-count"></span>
+    <a href="https://github.com/themetascientist/offshore-wind-tracker/blob/main/data/items.json">Data file</a>
+    <a href="https://github.com/themetascientist/offshore-wind-tracker#how-review-works">How review works</a>
+    <a href="https://github.com/themetascientist/offshore-wind-tracker/issues/new">Suggest an item or correction</a>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var TYPES = ["Litigation", "Lease buyback", "Regulatory action", "Legislation / policy", "Congressional oversight", "Research / analysis", "Project milestone", "State / local"];
+  var STATUSES = ["Pending", "Ongoing", "Resolved"];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var CSV_COLS = [["date", "Date"], ["summary", "Development"], ["project", "Project / lease"], ["type", "Type"], ["clearinghouse", "Clearinghouse"], ["mission", "Mission relevance"], ["status", "Status"], ["next", "Next milestone"], ["actor", "Actor"], ["developer", "Developer"], ["region", "Region"], ["scope", "Onshore / offshore"], ["tier", "Source tier"], ["source", "Source"], ["url", "Link"]];
+
+  var state = { items: [], scope: "all", q: "", type: "", status: "", where: "", loaded: false, failed: false };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") el.className = attrs[k];
+      else if (k === "text") el.textContent = attrs[k];
+      else el.setAttribute(k, attrs[k]);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c == null) continue;
+      el.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    }
+    return el;
+  }
+  function str(v) { return typeof v === "string" ? v : ""; }
+  function parts(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str(d)); return m ? { y: +m[1], m: +m[2], d: +m[3] } : null; }
+  function shortDate(d) { var p = parts(d); return p ? MONTHS[p.m - 1] + " " + p.d : "No date"; }
+  function longDate(d) { var p = parts(d); return p ? MONTHS[p.m - 1] + " " + p.d + ", " + p.y : "no date"; }
+  function monthKey(d) { var p = parts(d); return p ? p.y * 12 + (p.m - 1) : null; }
+  function safeUrl(u) { return /^https?:\/\//i.test(str(u)) ? u : null; }
+  function isOpen(it) { return it.status === "Pending" || it.status === "Ongoing"; }
+
+  function toast(msg) {
+    var t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.timer); toast.timer = setTimeout(function () { t.hidden = true; }, 4000);
+  }
+
+  function inScope() {
+    return state.items.filter(function (it) { return state.scope === "all" || it.clearinghouse === true; });
+  }
+  function filtered() {
+    var q = state.q.trim().toLowerCase();
+    return inScope().filter(function (it) {
+      if (state.type && it.type !== state.type) return false;
+      if (state.status && it.status !== state.status) return false;
+      if (state.where && it.scope !== state.where && it.scope !== "Both") return false;
+      if (!q) return true;
+      return [it.summary, it.project, it.developer, it.actor, it.region, it.mission, it.next, it.source].some(function (v) { return str(v).toLowerCase().indexOf(q) !== -1; });
+    });
+  }
+
+  function renderStats(scoped) {
+    var box = $("statline"); box.textContent = "";
+    var open = scoped.filter(isOpen).length;
+    var latest = scoped.length ? scoped[0].date : null;
+    function stat(n, label) { return h("span", null, h("b", { text: String(n) }), " " + label); }
+    box.appendChild(stat(scoped.length, scoped.length === 1 ? "development" : "developments"));
+    box.appendChild(stat(open, "open"));
+    box.appendChild(h("span", null, "latest ", h("b", { text: latest ? longDate(latest) : "none" })));
+  }
+
+  function renderChart(scoped) {
+    var bars = $("bars"), labels = $("bar-labels"), tip = $("tip");
+    bars.textContent = ""; labels.textContent = ""; tip.hidden = true;
+    var keys = state.items.map(function (it) { return monthKey(it.date); }).filter(function (k) { return k != null; });
+    if (!keys.length) return;
+    var lo = Math.min.apply(null, keys), hi = Math.max.apply(null, keys);
+    if (hi - lo > 35) lo = hi - 35;
+    var dense = hi - lo + 1 > 14;
+    var counts = {};
+    scoped.forEach(function (it) { var k = monthKey(it.date); if (k != null) counts[k] = (counts[k] || 0) + 1; });
+    var max = 1;
+    for (var k = lo; k <= hi; k++) max = Math.max(max, counts[k] || 0);
+    for (k = lo; k <= hi; k++) (function (k) {
+      var n = counts[k] || 0, y = Math.floor(k / 12), m = k % 12;
+      var label = MONTHS_LONG[m] + " " + y + ": " + n + (n === 1 ? " development" : " developments");
+      var slot = h("div", { class: "bar-slot", tabindex: "0", "aria-label": label });
+      if (n === max || k === hi) slot.appendChild(h("span", { class: "count", text: String(n) }));
+      var bar = h("div", { class: "bar" });
+      bar.style.height = n ? Math.max(4, Math.round((n / max) * 70)) + "px" : "0";
+      slot.appendChild(bar);
+      function show() {
+        tip.textContent = label; tip.hidden = false;
+        var chart = bars.parentNode.getBoundingClientRect(), r = slot.getBoundingClientRect();
+        var x = r.left - chart.left + r.width / 2;
+        var half = tip.offsetWidth / 2;
+        x = Math.max(half, Math.min(chart.width - half, x));
+        tip.style.left = x + "px";
+        tip.style.bottom = "auto";
+        tip.style.top = (chart.height + 4) + "px";
+      }
+      function hide() { tip.hidden = true; }
+      slot.addEventListener("mouseenter", show); slot.addEventListener("mouseleave", hide);
+      slot.addEventListener("focus", show); slot.addEventListener("blur", hide);
+      bars.appendChild(slot);
+      var showLabel = !dense || m % 3 === 0 || k === hi;
+      labels.appendChild(h("span", { text: showLabel ? MONTHS[m] + (m === 0 || k === lo ? " \u2019" + String(y).slice(2) : "") : "" }));
+    })(k);
+  }
+
+  function entryNode(it) {
+    var tags = h("div", { class: "tags" });
+    if (it.clearinghouse === true) tags.appendChild(h("span", { class: "tag ch", text: "Clearinghouse" }));
+    if (str(it.type)) tags.appendChild(h("span", { class: "tag", text: it.type }));
+    if (str(it.status)) tags.appendChild(h("span", { class: "tag" + (isOpen(it) ? " open" : ""), text: it.status }));
+    if (it.scope === "Onshore") tags.appendChild(h("span", { class: "tag", text: "Onshore" }));
+    var main = h("div", { class: "main" }, h("div", { class: "summary", text: str(it.summary) }), tags);
+    var metaBits = [it.project, it.actor, it.developer, it.region].map(str).filter(Boolean);
+    if (metaBits.length) main.appendChild(h("div", { class: "meta", text: metaBits.join(" \u00b7 ") }));
+    if (str(it.mission)) main.appendChild(h("div", { class: "meta" }, h("b", { text: "Mission relevance: " }), it.mission));
+    if (str(it.next)) main.appendChild(h("div", { class: "meta" }, h("b", { text: "Next: " }), it.next));
+    var foot = h("div", { class: "entry-foot" });
+    var url = safeUrl(it.url);
+    if (url) foot.appendChild(h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: (str(it.source) || "Source") + " \u2197" }));
+    else if (str(it.source)) foot.appendChild(h("span", { text: it.source }));
+    if (str(it.tier)) foot.appendChild(h("span", { class: "tier", text: it.tier }));
+    main.appendChild(foot);
+    return h("article", { class: "entry" + (it.clearinghouse === true ? " ch" : "") }, h("div", { class: "date", text: shortDate(it.date) }), main);
+  }
+
+  function renderLedger(list) {
+    var box = $("ledger"); box.textContent = "";
+    if (state.failed) { box.appendChild(h("p", { class: "empty", text: "The tracker data could not be loaded. Reload the page to try again." })); return; }
+    if (!state.loaded) { box.appendChild(h("p", { class: "empty", text: "Loading developments\u2026" })); return; }
+    if (!list.length) { box.appendChild(h("p", { class: "empty", text: "Nothing matches these filters. Clear the search or switch scope to All." })); return; }
+    var groups = [], cur = null;
+    list.forEach(function (it) {
+      var k = monthKey(it.date);
+      if (!cur || cur.key !== k) { cur = { key: k, items: [] }; groups.push(cur); }
+      cur.items.push(it);
+    });
+    groups.forEach(function (g) {
+      var title = g.key == null ? "Undated" : MONTHS_LONG[g.key % 12] + " " + Math.floor(g.key / 12);
+      var sec = h("section", { class: "month" }, h("div", { class: "month-head" }, h("span", { text: title }), h("span", { text: String(g.items.length) })));
+      g.items.forEach(function (it) { sec.appendChild(entryNode(it)); });
+      box.appendChild(sec);
+    });
+  }
+
+  function renderWatch(scoped) {
+    var box = $("watch-list"); box.textContent = "";
+    var open = scoped.filter(function (it) { return isOpen(it) && str(it.next); }).slice(0, 8);
+    if (!open.length) { box.appendChild(h("li", { class: "proj", text: "No open items with a next milestone in this scope." })); return; }
+    open.forEach(function (it) {
+      box.appendChild(h("li", null,
+        h("span", { class: "next", text: it.next }),
+        h("span", { class: "proj", text: [str(it.project), "logged " + shortDate(it.date)].filter(Boolean).join(" \u00b7 ") })));
+    });
+  }
+
+  function render() {
+    document.querySelectorAll(".scope button").forEach(function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-scope") === state.scope)); });
+    var scoped = inScope();
+    renderStats(scoped); renderChart(scoped); renderLedger(filtered()); renderWatch(scoped);
+    $("foot-count").textContent = state.loaded ? state.items.length + " developments logged" : "";
+  }
+
+  function fillSelect(id, values) { var sel = $(id); values.forEach(function (v) { sel.appendChild(h("option", { value: v, text: v })); }); }
+
+  function downloadCsv() {
+    var rows = [CSV_COLS.map(function (c) { return c[1]; })].concat(filtered().map(function (it) {
+      return CSV_COLS.map(function (c) { var v = it[c[0]]; return c[0] === "clearinghouse" ? (v === true ? "Yes" : "No") : str(v); });
+    }));
+    var csv = rows.map(function (r) { return r.map(function (v) { return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); }).join("\r\n");
+    try {
+      var url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+      var a = h("a", { href: url, download: "offshore-wind-tracker.csv" });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      toast("Downloaded " + (rows.length - 1) + " rows.");
+    } catch (e) { toast("The download was blocked by this browser."); }
+  }
+
+  fillSelect("f-type", TYPES); fillSelect("f-status", STATUSES);
+  try { var s = localStorage.getItem("owt-scope"); if (s === "ch" || s === "all") state.scope = s; } catch (e) {}
+  document.querySelectorAll(".scope button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.scope = b.getAttribute("data-scope");
+      try { localStorage.setItem("owt-scope", state.scope); } catch (e) {}
+      render();
+    });
+  });
+  $("q").addEventListener("input", function (e) { state.q = e.target.value; renderLedger(filtered()); });
+  $("f-type").addEventListener("change", function (e) { state.type = e.target.value; renderLedger(filtered()); });
+  $("f-status").addEventListener("change", function (e) { state.status = e.target.value; renderLedger(filtered()); });
+  $("f-where").addEventListener("change", function (e) { state.where = e.target.value; renderLedger(filtered()); });
+  $("csv").addEventListener("click", downloadCsv);
+  render();
+
+  fetch("data/items.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (data) {
+    state.items = (Array.isArray(data) ? data : []).slice().sort(function (a, b) { return str(b.date).localeCompare(str(a.date)) || str(a.id).localeCompare(str(b.id)); });
+    state.loaded = true; render();
+  }).catch(function () { state.failed = true; render(); });
+})();
+</script>
+</body>
+</html>
