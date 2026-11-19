@@ -186,11 +186,7 @@ a.btn.primary { color: var(--on-accent); }
   <header class="masthead">
     <div>
       <h1>Offshore Wind Tracker</h1>
-      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind development. Switch to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
-    </div>
-    <div class="scope" role="radiogroup" aria-label="Scope">
-      <button type="button" role="radio" id="scope-all" aria-checked="true" data-scope="all">All</button>
-      <button type="button" role="radio" id="scope-ch" aria-checked="false" data-scope="ch">Clearinghouse</button>
+      <p class="lede">Federal actions, litigation and lease buybacks affecting U.S. wind development. Filter to Clearinghouse to see only items where DoD review or a national-security rationale is at issue.</p>
     </div>
   </header>
 
@@ -209,6 +205,7 @@ a.btn.primary { color: var(--on-accent); }
 
   <div class="controls">
     <input type="search" id="q" placeholder="Search summaries, projects, developers" aria-label="Search">
+    <select id="f-scope" aria-label="All items or Clearinghouse only"><option value="all">All items</option><option value="ch">Clearinghouse only</option></select>
     <select id="f-type" aria-label="Type"><option value="">All types</option></select>
     <select id="f-status" aria-label="Status"><option value="">Any status</option></select>
     <select id="f-where" aria-label="Onshore or offshore"><option value="">Onshore and offshore</option><option value="Offshore">Offshore</option><option value="Onshore">Onshore</option></select>
@@ -373,7 +370,7 @@ a.btn.primary { color: var(--on-accent); }
     var box = $("ledger"); box.textContent = "";
     if (state.failed) { box.appendChild(h("p", { class: "empty", text: "The tracker data could not be loaded. Reload the page to try again." })); return; }
     if (!state.loaded) { box.appendChild(h("p", { class: "empty", text: "Loading developments\u2026" })); return; }
-    if (!list.length) { box.appendChild(h("p", { class: "empty", text: "Nothing matches these filters. Clear the search or switch scope to All." })); return; }
+    if (!list.length) { box.appendChild(h("p", { class: "empty", text: "Nothing matches these filters. Clear the search or set the first filter to All items." })); return; }
     var groups = [], cur = null;
     list.forEach(function (it) {
       var k = monthKey(it.date);
@@ -400,7 +397,7 @@ a.btn.primary { color: var(--on-accent); }
   }
 
   function render() {
-    document.querySelectorAll(".scope button").forEach(function (b) { b.setAttribute("aria-checked", String(b.getAttribute("data-scope") === state.scope)); });
+    $("f-scope").value = state.scope;
     var scoped = inScope();
     renderStats(scoped); renderChart(scoped); renderLedger(filtered()); renderWatch(scoped);
     $("foot-count").textContent = state.loaded ? state.items.length + " developments logged" : "";
@@ -424,12 +421,10 @@ a.btn.primary { color: var(--on-accent); }
 
   fillSelect("f-type", TYPES); fillSelect("f-status", STATUSES);
   try { var s = localStorage.getItem("owt-scope"); if (s === "ch" || s === "all") state.scope = s; } catch (e) {}
-  document.querySelectorAll(".scope button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      state.scope = b.getAttribute("data-scope");
-      try { localStorage.setItem("owt-scope", state.scope); } catch (e) {}
-      render();
-    });
+  $("f-scope").addEventListener("change", function (e) {
+    state.scope = e.target.value === "ch" ? "ch" : "all";
+    try { localStorage.setItem("owt-scope", state.scope); } catch (err) {}
+    render();
   });
   $("q").addEventListener("input", function (e) { state.q = e.target.value; renderLedger(filtered()); });
   $("f-type").addEventListener("change", function (e) { state.type = e.target.value; renderLedger(filtered()); });
