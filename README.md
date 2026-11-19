@@ -2,7 +2,7 @@
 
 A dated log of federal actions, litigation and lease buybacks affecting U.S. wind development, with the DoD Siting Clearinghouse thread marked so it can be viewed alone.
 
-**Read it:** https://offshorewindtracker.github.io/offshore-wind-tracker/
+**Read it:** https://offshorewindtracker.github.io/
 
 Every entry is written from a public source, and each links to the source it rests on.
 
